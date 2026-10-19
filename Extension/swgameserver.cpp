@@ -23,6 +23,7 @@
 #include <smsdk_ext.h>
 
 #include <isteamclient.h>
+#include <steam_gameserver.h>
 #include <isteamgameserver.h>
 #include <isteamutils.h>
 #include <isteamnetworking.h>
@@ -30,6 +31,9 @@
 #include <isteamhttp.h>
 #include <isteammatchmaking.h>
 #include <isteamgamecoordinator.h>
+
+#include "sdk/isteamgameserver014.h"
+#include "sdk/isteamnetworkingsockets012.h"
 
 static void GetGameSpecificConfigInterface(const char *pName, const char *&pVersion)
 {
@@ -64,6 +68,8 @@ void SteamWorksGameServer::Reset(void)
 {
 	this->m_pClient = NULL;
 	this->m_pGameServer = NULL;
+	this->m_pGameServer014 = NULL;
+	this->m_pNetworkingSockets012 = NULL;
 	this->m_pUtils = NULL;
 	this->m_pNetworking = NULL;
 	this->m_pStats = NULL;
@@ -141,6 +147,40 @@ ISteamGameServer *SteamWorksGameServer::GetGameServer(void)
 	}
 	
 	return this->m_pGameServer;
+}
+
+ISteamGameServer014 *SteamWorksGameServer::GetGameServer014(void)
+{
+	if (this->m_pGameServer014 == NULL && this->GetSteamClient() != NULL)
+	{
+		HSteamUser hSteamUser;
+		HSteamPipe hSteamPipe;
+		GetUserAndPipe(hSteamUser, hSteamPipe);
+
+		/* Steamworks SDK 1.32 does not declare this newer interface. */
+		this->m_pGameServer014 = reinterpret_cast<ISteamGameServer014 *>(
+			this->GetSteamClient()->GetISteamGameServer(hSteamUser, hSteamPipe,
+				STEAMGAMESERVER014_INTERFACE_VERSION));
+	}
+
+	return this->m_pGameServer014;
+}
+
+ISteamNetworkingSockets012 *SteamWorksGameServer::GetNetworkingSockets012(void)
+{
+	if (this->m_pNetworkingSockets012 == NULL && this->GetSteamClient() != NULL)
+	{
+		HSteamUser hSteamUser;
+		HSteamPipe hSteamPipe;
+		GetUserAndPipe(hSteamUser, hSteamPipe);
+
+		/* Steamworks SDK 1.32 does not declare this interface; NULL if steamclient lacks it. */
+		this->m_pNetworkingSockets012 = static_cast<ISteamNetworkingSockets012 *>(
+			this->GetSteamClient()->GetISteamGenericInterface(hSteamUser, hSteamPipe,
+				STEAMNETWORKINGSOCKETS012_INTERFACE_VERSION));
+	}
+
+	return this->m_pNetworkingSockets012;
 }
 
 ISteamUtils *SteamWorksGameServer::GetUtils(void)
@@ -249,10 +289,12 @@ const char *SteamWorksGameServer::GetLibraryPath(void)
 
 	if (pLibSteamPath == NULL)
 	{
+		const bool is64Bit = (sizeof(void *) == 8);
 #if defined POSIX
-		pLibSteamPath = "./bin/libsteam_api.so";
+		pLibSteamPath = is64Bit ? "./bin/linux64/libsteam_api.so" : "./bin/libsteam_api.so";
 #elif defined WIN32_LEAN_AND_MEAN
-		pLibSteamPath = "./bin/steam_api.dll"; /* Naming from SteamTools. */
+		/* 32-bit naming from SteamTools. */
+		pLibSteamPath = is64Bit ? "./bin/x64/steam_api64.dll" : "./bin/steam_api.dll";
 #endif
 
 		if (g_SteamWorks.pSWGameData)
