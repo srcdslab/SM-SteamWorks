@@ -50,7 +50,8 @@ static cell_t sm_RequestStatsAuthID(IPluginContext *pContext, const cell_t *para
 		return 0;
 	}
 
-	CSteamID checkid = CreateCommonCSteamID(params[1], params);
+	// params[2] is the appid, not a universe: no universe/type arguments here.
+	CSteamID checkid = CreateCommonCSteamID(params[1], params, 3, 4);
 	return pStats->RequestUserStats(checkid) != k_uAPICallInvalid ? 1 : 0;
 }
 
@@ -75,7 +76,8 @@ static cell_t sm_RequestUserStats(IPluginContext *pContext, const cell_t *params
 		return pContext->ThrowNativeError("Client index %d is not connected", client);
 	}
 
-	CSteamID checkid = CreateCommonCSteamID(pPlayer, params);
+	// params[2] is the appid, not a universe: no universe/type arguments here.
+	CSteamID checkid = CreateCommonCSteamID(pPlayer, params, 3, 4);
 	return pStats->RequestUserStats(checkid) != k_uAPICallInvalid ? 1 : 0;
 }
 
