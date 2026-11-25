@@ -51,6 +51,9 @@ class SteamWorksHTTP :
 	private:
 		SteamWorksHTTPRequest *FindRequest(HTTPRequestHandle request);
 
+		/* Set while RemoveType destroys the handles still open at unload. */
+		bool m_bUnloading = false;
+
 		STEAM_GAMESERVER_CALLBACK(SteamWorksHTTP, OnHTTPHeadersReceived, HTTPRequestHeadersReceived_t, m_CallbackHeadersReceived);
 		STEAM_GAMESERVER_CALLBACK(SteamWorksHTTP, OnHTTPDataReceived, HTTPRequestDataReceived_t, m_CallbackDataReceived);
 

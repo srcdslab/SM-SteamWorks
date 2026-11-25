@@ -35,6 +35,9 @@ SteamWorksHTTP::SteamWorksHTTP() :
 
 SteamWorksHTTP::~SteamWorksHTTP()
 {
+	/* RemoveType destroys every handle still open. A frame action queued for them
+	   would run after SourceMod has unloaded this library: delete them right away. */
+	this->m_bUnloading = true;
 	handlesys->RemoveType(this->typeHTTP, myself->GetIdentity());
 }
 
@@ -93,7 +96,14 @@ void SteamWorksHTTP::OnHandleDestroy(HandleType_t type, void *object)
 {
 	if (type == this->typeHTTP) /* Heaven forbid we ever offer another handle. */
 	{
-		smutils->AddFrameAction(DelayedDeleteSteamWorksHTTPRequest, object);
+		if (this->m_bUnloading)
+		{
+			delete reinterpret_cast<SteamWorksHTTPRequest *>(object);
+		}
+		else
+		{
+			smutils->AddFrameAction(DelayedDeleteSteamWorksHTTPRequest, object);
+		}
 	}
 }
 
